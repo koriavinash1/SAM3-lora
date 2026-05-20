@@ -1,0 +1,26 @@
+dataset:
+  coco_json: data/coco.json
+  img_root: data/images
+  split: train
+
+lora:
+  rank: 16
+  alpha: 32
+  dropout: 0.05
+  target_modules:
+    - "encoder"
+    - "decoder"
+    - "attention"
+  trainable_fraction: 0.05
+
+train:
+  seed: 42
+  epochs: 2
+  batch_size: 1
+  learning_rate: 0.0001
+  output_dir: outputs/lora_5pct
+  log_every_steps: 10
+
+model:
+  sam3_checkpoint: sam3_hiera_large
+  device: cpu
