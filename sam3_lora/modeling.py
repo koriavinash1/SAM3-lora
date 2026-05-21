@@ -14,30 +14,18 @@ def _load_from_sam3_package(checkpoint: str):
     candidates = [
         ("sam3.build_sam", "build_sam3"),
         ("sam3.build_sam", "build_sam"),
+        ("sam3", "build_sam3_image_model"),
         ("sam3", "build_sam3"),
         ("sam3", "build_sam"),
     ]
 
-    for module_name, fn_name in candidates:
-        try:
-            module = importlib.import_module(module_name)
-            fn = getattr(module, fn_name)
-        except (ModuleNotFoundError, AttributeError):
-            continue
+    module = importlib.import_module("sam3")
+    fn = getattr(module, "build_sam3_image_model")
+    logger.info("Function loaded")
 
-        try:
-            model = fn(checkpoint)
-            logger.info("Loaded SAM3 model via %s.%s", module_name, fn_name)
-            return model
-        except TypeError:
-            model = fn(model_type=checkpoint)
-            logger.info("Loaded SAM3 model via %s.%s with model_type", module_name, fn_name)
-            return model
-
-    raise RuntimeError(
-        "Unable to import SAM3. Install latest SAM3 package/repo compatible with this trainer."
-    )
-
+    model = fn(checkpoint)
+    logger.info("Loaded SAM3 model via %s", checkpoint)
+    return model
 
 
 def load_sam3_model(checkpoint: str, device: str):

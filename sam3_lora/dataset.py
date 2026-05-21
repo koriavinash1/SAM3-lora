@@ -50,7 +50,7 @@ class CocoSplitDataset:
             if split != self.split:
                 continue
 
-            image_path = self.img_root / image["file_name"]
+            image_path = self.img_root / (str(image["file_name"]) + '.jpg')
             records.append(
                 CocoImageRecord(
                     image_id=image_id,

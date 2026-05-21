@@ -2,7 +2,7 @@
 name = "sam3-lora"
 version = "0.1.0"
 description = "SAM3 LoRA fine-tuning with COCO split-aware datasets"
-authors = ["koriavinash1 <koriavinash1@users.noreply.github.com>"]
+authors = ["koriavinash1 <koriavinash1@blurgs.com>"]
 readme = "README.md"
 packages = [{ include = "sam3_lora" }]
 
@@ -10,8 +10,11 @@ packages = [{ include = "sam3_lora" }]
 python = ">=3.10,<3.13"
 pyyaml = "^6.0.2"
 tqdm = "^4.66.5"
-torch = ">=2.3"
+torch = ">=2.5,<3.0"
 sam3 = { git = "https://github.com/facebookresearch/sam3.git", branch = "main" }
+einops = "^0.8.2"
+pycocotools = "^2.0.11"
+psutil = "^7.2.2"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.3.3"
