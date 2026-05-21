@@ -19,10 +19,27 @@ def _load_from_sam3_package(checkpoint: str):
         ("sam3", "build_sam"),
     ]
 
-    module = importlib.import_module("sam3")
-    fn = getattr(module, "build_sam3_image_model")
-    logger.info("Function loaded")
+    fn = None
+    last_error = None
+    
+    for module_name, fn_name in candidates:
+        try:
+            module = importlib.import_module(module_name)
+            if hasattr(module, fn_name):
+                fn = getattr(module, fn_name)
+                logger.info("Found SAM3 builder: %s.%s", module_name, fn_name)
+                break
+        except (ImportError, AttributeError) as e:
+            last_error = e
+            continue
 
+    if fn is None:
+        error_msg = f"Could not find a valid SAM3 builder function. Tried: {candidates}"
+        if last_error:
+            error_msg += f". Last error: {last_error}"
+        raise RuntimeError(error_msg)
+
+    logger.info("Function loaded")
     model = fn(checkpoint)
     logger.info("Loaded SAM3 model via %s", checkpoint)
     return model
