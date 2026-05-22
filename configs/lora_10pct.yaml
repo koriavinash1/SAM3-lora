@@ -20,6 +20,14 @@ train:
   learning_rate: 0.0001
   output_dir: outputs/lora_10pct
   log_every_steps: 10
+  # New parameters for improved training
+  val_split_ratio: 0.1
+  use_class_weights: true
+  loss_type: "combined"
+  enable_validation: true
+  validation_frequency: 1
+  save_visualizations: true
+  visualization_frequency: 10
 
 model:
   sam3_checkpoint: /vol/biomedic3/agk21/blurgs/TNC/sam3_checkpoint.pt

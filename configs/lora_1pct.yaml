@@ -20,6 +20,14 @@ train:
   learning_rate: 0.0001
   output_dir: outputs/lora_1pct
   log_every_steps: 10
+  # New parameters for improved training
+  val_split_ratio: 0.1  # Use 10% of training data for validation
+  use_class_weights: true  # Use inverse class weights for imbalanced datasets
+  loss_type: "combined"  # Options: "dice", "focal", "combined"
+  enable_validation: true  # Run validation after training
+  validation_frequency: 1  # Validate every N batches (set high to reduce frequency)
+  save_visualizations: true  # Save segmentation visualizations
+  visualization_frequency: 10  # Save viz every N validations
 
 model:
   # Use current SAM3 checkpoints/model IDs from facebookresearch/sam3.
