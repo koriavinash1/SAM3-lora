@@ -24,4 +24,4 @@ train:
 model:
   # Use current SAM3 checkpoints/model IDs from facebookresearch/sam3.
   sam3_checkpoint: /vol/biomedic3/agk21/blurgs/TNC/sam3_checkpoint.pt
-  device: gpu
+  device: cuda

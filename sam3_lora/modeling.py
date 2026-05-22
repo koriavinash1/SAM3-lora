@@ -22,8 +22,9 @@ def _load_from_sam3_package(checkpoint: str):
     module = importlib.import_module("sam3")
     fn = getattr(module, "build_sam3_image_model")
     logger.info("Function loaded")
+    print(module, fn, checkpoint)
 
-    model = fn(checkpoint)
+    model = fn() #checkpoint_path = checkpoint)
     logger.info("Loaded SAM3 model via %s", checkpoint)
     return model
 

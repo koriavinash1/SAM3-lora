@@ -1,6 +1,6 @@
 dataset:
-  coco_json: data/coco.json
-  img_root: data/images
+  img_root: /vol/biomedic3/agk21/blurgs/TNC/dataset/fishnet/images
+  coco_json: /vol/biomedic3/agk21/blurgs/TNC/code/fishnet_coco_with_masks.json
   split: train
 
 lora:
@@ -22,5 +22,5 @@ train:
   log_every_steps: 10
 
 model:
-  sam3_checkpoint: sam3_hiera_large
-  device: cpu
+  sam3_checkpoint: /vol/biomedic3/agk21/blurgs/TNC/sam3_checkpoint.pt
+  device: cuda
