@@ -302,6 +302,14 @@ def run_training(config: RunConfig) -> Path:
                     viz_counter += 1
                     logger.info("Saving visualization batch %s", viz_counter)
                     
+                    # Import visualization libraries once
+                    try:
+                        import matplotlib.pyplot as plt
+                        import numpy as np
+                    except ImportError:
+                        logger.warning("matplotlib/numpy not available, skipping visualizations")
+                        continue
+                    
                     # Create visualizations directory
                     viz_dir = config.train.output_dir / "visualizations"
                     viz_dir.mkdir(parents=True, exist_ok=True)
@@ -337,9 +345,6 @@ def run_training(config: RunConfig) -> Path:
                                     
                                     # Create a simple visualization for individual class
                                     try:
-                                        import matplotlib.pyplot as plt
-                                        import numpy as np
-                                        
                                         fig, axes = plt.subplots(1, 2, figsize=(10, 5))
                                         axes[0].imshow(val_data["image"])
                                         axes[0].set_title("Input Image")
