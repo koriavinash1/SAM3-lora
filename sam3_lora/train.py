@@ -10,6 +10,7 @@ from sam3_lora.dataset import CocoSplitDataset
 from sam3_lora.logging_utils import configure_logging
 from sam3_lora.lora import TorchUnavailableError, apply_trainable_fraction, inject_lora
 from sam3_lora.modeling import load_sam3_model
+from sam3_lora.visualization import plot_segmentation, assign_open_set_labels
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +93,7 @@ def _validate(
     model.eval()
     total_loss = 0.0
     num_batches = 0
+    validation_data = []  # Store predictions and images for visualization
     
     # Limit validation to first few samples for efficiency
     val_samples = min(10, len(val_dataset.records))
@@ -118,7 +120,36 @@ def _validate(
                         class_weights=class_weights,
                         torch=torch,
                     )
-            except Exception:
+                
+                # Store data for visualization
+                image_np = image_tensor.squeeze(0).cpu().numpy().transpose(1, 2, 0)
+                if image_np.max() <= 1.0:
+                    image_np = (image_np * 255).astype('uint8')
+                else:
+                    image_np = image_np.astype('uint8')
+                
+                # Convert output to numpy for visualization
+                if output_tensor is not None:
+                    output_np = output_tensor.squeeze(0).cpu().numpy()
+                    if output_np.ndim > 2:
+                        output_np = output_np[:min(3, output_np.shape[0]), :, :]  # Use first 3 channels
+                    
+                    # Create predictions dict for visualization
+                    predictions = {
+                        "masks": output_np > 0.5,  # Binary masks
+                        "logits": output_np,
+                        "class_ids": list(range(output_np.shape[0] if output_np.ndim > 2 else 1)),
+                        "class_names": [f"Class_{i}" for i in range(output_np.shape[0] if output_np.ndim > 2 else 1)]
+                    }
+                    
+                    validation_data.append({
+                        "image_path": record.image_path,
+                        "image": image_np,
+                        "predictions": predictions,
+                        "index": i
+                    })
+            except Exception as e:
+                logger.debug("Exception during forward pass: %s", e)
                 loss = _fallback_loss(model, torch)
             
             total_loss += float(loss.item())
@@ -130,6 +161,7 @@ def _validate(
     return {
         "val_loss": avg_loss,
         "num_batches": num_batches,
+        "validation_data": validation_data,
     }
 
 
@@ -268,7 +300,68 @@ def run_training(config: RunConfig) -> Path:
                     and validation_counter % config.train.visualization_frequency == 0
                 ):
                     viz_counter += 1
-                    logger.info("Saving visualization %s", viz_counter)
+                    logger.info("Saving visualization batch %s", viz_counter)
+                    
+                    # Import visualization libraries once
+                    try:
+                        import matplotlib.pyplot as plt
+                        import numpy as np
+                    except ImportError:
+                        logger.warning("matplotlib/numpy not available, skipping visualizations")
+                        continue
+                    
+                    # Create visualizations directory
+                    viz_dir = config.train.output_dir / "visualizations"
+                    viz_dir.mkdir(parents=True, exist_ok=True)
+                    
+                    # Save visualizations for each validation sample
+                    for val_data in val_results.get("validation_data", []):
+                        image_name = val_data["image_path"].stem
+                        
+                        # Save whole image segmentation (combined masks)
+                        whole_img_path = viz_dir / f"{image_name}_viz_batch{viz_counter:03d}.png"
+                        plot_segmentation(
+                            image=val_data["image"],
+                            predictions=val_data["predictions"],
+                            ground_truth=None,
+                            output_path=whole_img_path,
+                        )
+                        logger.info("Saved whole image segmentation to %s", whole_img_path)
+                        
+                        # Also save individual class segmentations
+                        # The plot_segmentation function already handles this in the subplots
+                        # but we can also save individual class masks if needed
+                        predictions = val_data["predictions"]
+                        if "masks" in predictions:
+                            masks = predictions["masks"]
+                            class_ids = predictions.get("class_ids", [])
+                            class_names = predictions.get("class_names", [str(cid) for cid in class_ids])
+                            
+                            # Save individual class segmentations
+                            if masks.ndim == 3:
+                                for class_idx in range(min(3, masks.shape[0])):  # Save max 3 classes
+                                    class_name = class_names[class_idx] if class_idx < len(class_names) else f"Class_{class_idx}"
+                                    class_mask_path = viz_dir / f"{image_name}_class_{class_name}_batch{viz_counter:03d}.png"
+                                    
+                                    # Create a simple visualization for individual class
+                                    try:
+                                        fig, axes = plt.subplots(1, 2, figsize=(10, 5))
+                                        axes[0].imshow(val_data["image"])
+                                        axes[0].set_title("Input Image")
+                                        axes[0].axis("off")
+                                        
+                                        axes[1].imshow(val_data["image"])
+                                        axes[1].imshow(masks[class_idx], alpha=0.4, cmap="Blues")
+                                        axes[1].set_title(f"Class: {class_name}")
+                                        axes[1].axis("off")
+                                        
+                                        plt.tight_layout()
+                                        class_mask_path.parent.mkdir(parents=True, exist_ok=True)
+                                        plt.savefig(class_mask_path, dpi=100, bbox_inches="tight")
+                                        plt.close(fig)
+                                        logger.info("Saved class segmentation to %s", class_mask_path)
+                                    except Exception as e:
+                                        logger.warning("Failed to save class segmentation: %s", e)
             
             # Log training progress (not every image, but every N steps)
             if global_step % config.train.log_every_steps == 0 and global_step > last_logged_step:
